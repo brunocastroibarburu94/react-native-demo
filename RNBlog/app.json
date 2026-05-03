@@ -1,0 +1,21 @@
+{
+    "expo":{
+        "scheme":"test_scheme"
+    },
+    "ios":{
+        "supportsTablet":true
+    },
+    "android":{
+        "adaptiveIcon":{
+            "foregroundImage": "./assets/BC_Logo_green.PNG",
+            "backgroundColor": "#ffffff"
+        } 
+    },
+    "web":{
+        "favicon": "./assets/BC_Logo_green.PNG",
+        "bundler": "metro"
+    },
+    "plugins": [
+    "expo-router"
+    ]
+}

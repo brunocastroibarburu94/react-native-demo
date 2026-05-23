@@ -1,10 +1,15 @@
 # react-native-demo
-Learning some React Native to develop app, this code was produced following the example from [notJust.dev](https://www.youtube.com/watch?v=ewW6_baBXko)
+Learning some React Native to develop app, this code was produced following the example from [notJust.dev](https://www.youtube.com/watch?v=ewW6_baBXko) and [Net Ninja](https://github.com/iamshaunjp/Complete-React-Native-Tutorial)
 
 
 # Set up instructions
 
-Expo 
+
+1. Have `NodeJS` installed, `NodeJS` is the runtime you use to generate the javascript files. It also provides the webserver services to serve the files at a specified port.
+
+2. Have `Expo` installed, expo is a javascript package that allows your application to be installed in multiple devices using a single codebase (it offers a single interface that allows your application to access the resources of different devices using the same functions)
+
+3. Install Expo Go in your Android or iOS device, follow [Expo documentation](https://docs.expo.dev/get-started/set-up-your-environment/?platform=android&device=physical)
 
 Markdown to write the site content Content
 
@@ -12,13 +17,20 @@ Expo router version free
 
 
 
+
 ## Step 1: Create Expo Project
 ```bash
 # Step 1: Create Expo project
-# npx create-exp-app@<expo-version> <app-name>
-npx create-exp-app@latest RNBlog
+# npx create-exp-app@<expo-version> <app-dir>
+# npx create-exp-app@latest RNBlog
+
+npx create-expo-app@latest --template blank-typescript ./
+npx create-expo-app@latest --template=blank-typescript app
 ```
 
+`npx expo start`
+
+### Notes
 If this is the first time or there is a  new expo version available you may be prompted to install expo's latest version.
 
 ```log
@@ -127,6 +139,13 @@ To address all issues (including breaking changes), run:
 
 
 > It is unclear how to remove (or even if its possible to remove) all vulnerabilities.
+## Step: Move entrypoint to ./app
+Create an `app` directory, and create a `index.ts` inside it. You can use the ES7 `rnfes` snippet for it.
+
+Then modify the `package.json` to use `expo-router` to handle the entrypoint of the application, which will look under the `app` directory.
+
+Also modify the `package.json` to add a scheme so that deep linking can be used. 
+
 
 ## Step: Configure package.json entrypoint
 Go to the `RNBlog/package.json` and modify the `main` key of the JSON file.
@@ -143,8 +162,16 @@ For web applications:
 ```bash
 npx expo install react-native-web react-dom
 ```
+## Install Typescript
 
+According to [React Native Docs](https://reactnative.dev/docs/typescript)You may find that node cannot recognize the extended typescript extension tpx. To add Typescript to your Node project run.
+```bash
+npm install -D typescript @react-native/typescript-config @types/jest @types/react @types/react-test-renderer
+```
 
+```bash
+npm i --save-dev @types/node
+```
 ## Step: Configure "expo" key at 
 For further information around the `expo` configuration under the `<appName>/app.json` directory follow [Expo's official documentation](https://docs.expo.dev/versions/latest/config/app/).
 
@@ -184,6 +211,10 @@ However you can modify it to:
     ]
 }
 ```
+
+
+**Deep-linking:** Setting the `scheme` key of expo allow us to do deep-linking.
+
 ## Step: Specify Expo configuration
 A lot of configuration files are not present by default when creating a new expo project, this can hide the configuration of `expo` dependencies. In order to make these default configurations explicit into the project you can use the following command to generate the default configuration files. 
 
@@ -192,6 +223,7 @@ npx expo customize
 ```
 
 Once you run that command a prompt asking you which configuration files you want to generate will appear, select all the files and generate them.
+
 
 
 ## Step: Configure .env

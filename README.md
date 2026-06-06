@@ -2,9 +2,44 @@
 Learning some React Native to develop app, this code was produced following the example from [notJust.dev](https://www.youtube.com/watch?v=ewW6_baBXko) and [Net Ninja](https://github.com/iamshaunjp/Complete-React-Native-Tutorial)
 
 
+# Pair phone with computer
+
+```bash
+# Go to Settings->Developer Options-> Wireless debugging -> Pair device with pairing code
+# Take note of the HOST:Port
+adb pair <IP-Address>:<Port>
+# You will be prompted in the terminal to enter the pairing code
+# db pair 192.168.1.54:42203
+# Enter pairing code: 383055
+# Successfully paired to 192.168.1.54:42203 [guid=adb-SHARK6EEA0008884-nRbLlS]
+
+# In Wireless debugging check the IP address & Port and connect
+adb connect 192.168.1.54:46393
+
+# Inspect the device has been connected
+adb devices
+
+# Run the app (this will install the app on the device)
+npm run android
+
+# Execute command from android device 
+adb shell ping -c 1 home.home.arpa
+```
+### Allow phone to debug on computer
+As per [React Native docs](https://reactnative.dev/docs/running-on-device)
+```
+Open the command prompt and type ipconfig to find your machine's IP address (more info).
+
+1. Make sure your laptop and your phone are on the same Wi-Fi network.
+2. Open your React Native app on your device.
+3. You'll see a red screen with an error. This is OK. The following steps will fix that.
+4. Open the in-app Dev Menu.
+5. Go to Dev Settings → Debug server host & port for device.
+6. Type in your machine's IP address and the port of the local dev server (e.g. 10.0.1.1:8081). 192.168.1.3:8081
+7. Go back to the Dev Menu and select Reload JS.
+```
+
 # Set up instructions
-
-
 1. Have `NodeJS` installed, `NodeJS` is the runtime you use to generate the javascript files. It also provides the webserver services to serve the files at a specified port.
 
 2. Have `Expo` installed, expo is a javascript package that allows your application to be installed in multiple devices using a single codebase (it offers a single interface that allows your application to access the resources of different devices using the same functions)

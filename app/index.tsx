@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+// import { Button } from 'react-native/types_generated/index';
 
 // const BASE_URL = 'https://home.home.arpa/api/v1'; // Requires trusted SSL certificate  (Not available due to unrecognized CA certificate)
 // const BASE_URL = 'https://www.brunocastroibarburu.com/api/v1';
@@ -91,7 +92,10 @@ async function apiFetch({ details, method = 'GET', url }: ApiRequestLog, init?: 
   const requestId = nextApiRequestId;
   nextApiRequestId += 1;
   const startedAt = Date.now();
+  console.log(``);
+  console.log(``);
   console.log(`[Home API #${requestId}] Request ${method} ${url}`, details ?? {});
+  console.log(`Headers: ${JSON.stringify(init?.headers ?? {})}`);
   try {
     const response = await fetch(url, init);
     if (!response.ok) {
@@ -103,41 +107,6 @@ async function apiFetch({ details, method = 'GET', url }: ApiRequestLog, init?: 
     throw error;
   }
 }
-
-// async function apiFetch({ details, method = 'GET', url }: ApiRequestLog, init?: RequestInit) {
-//   const requestId = nextApiRequestId;
-//   nextApiRequestId += 1;
-
-//   const startedAt = Date.now();
-//   console.log(`[Home API #${requestId}] Request ${method} ${url}`, details ?? {});
-
-//   try {
-//     // const response = await fetch(url, init);
-//     const response = await fetch("https://home.home.arpa/api/v1");
-    
-
-//     if (!response.ok) {
-//         throw new Error(`HTTP error! status: ${response.status}`);
-//     }
-
-//     // console.log(`[Home API #${requestId}] Response received in ${Date.now() - startedAt}ms`, {
-//     //   ok: response.ok,
-//     //   redirected: response.redirected,
-//     //   status: response.status,
-//     //   statusText: response.statusText,
-//     //   type: response.type,
-//     //   url: response.url || url,
-//     //   headers: responseHeadersToObject(response.headers),
-//     // });
-
-//     return response;
-//   } catch (error) {
-//     console.log(`[Home API #${requestId}] Request failed after ${Date.now() - startedAt}ms`);
-//     // console.error(`[Home API #${requestId}]`, error);
-//     // logApiError(requestId, error);
-//     throw error;
-//   }
-// }
 
 
 async function parseResponse(response: Response): Promise<ApiResult> {
@@ -217,10 +186,14 @@ const Home = () => {
   const [saveCredentials, setSaveCredentials] = useState(true);
   const [rememberPassword, setRememberPassword] = useState(false);
   const [refreshToken, setRefreshToken] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const [accessTokenMeta, setAccessTokenMeta] = useState<Omit<TokenResponse, 'access_token'> | null>(null);
+  const [accessTokenResult, setAccessTokenResult] = useState<ApiResult>(null);
   const [tokenMeta, setTokenMeta] = useState<Omit<TokenResponse, 'access_token'> | null>(null);
   const [rootResult, setRootResult] = useState<ApiResult>(null);
   const [tokenResult, setTokenResult] = useState<ApiResult>(null);
   const [tenantsResult, setTenantsResult] = useState<ApiResult>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<RequestKey | null>(null);
   const hasLoadedStorage = useRef(false);
@@ -357,25 +330,33 @@ const Home = () => {
 
   const fetchTenants = () => {
     void runRequest('tenants', async () => {
-      const response = await apiFetch({
-        details: {
-          authorization: refreshToken ? `Bearer ${refreshToken.slice(0, 16)}...` : '<missing>',
-        },
-        url: `${BASE_URL}/session/tenants`,
-      }, {
-        headers: {
-          Authorization: `Bearer ${refreshToken}`,
-        },
-      });
+      const response = await apiFetch(
+        { details: {}, url: `${BASE_URL}/session/tenants`,}, 
+        { headers: {Authorization: `Bearer ${refreshToken}`,},}
+      );
       const payload = await readJsonOrThrow(response);
-
-      if (!isTenantsResponse(payload)) {
-        throw new Error(`Unexpected tenants response: ${formatResult(payload)}`);
-      }
-
+      if (!isTenantsResponse(payload)) {  throw new Error(`Unexpected tenants response: ${formatResult(payload)}`);}
       setTenantsResult(payload);
     });
   };
+
+  const fetchAccessToken = () => {
+    void runRequest('token', async () => {
+      const body = new URLSearchParams();
+      const response = await apiFetch(
+        {details:{}, url: `${BASE_URL}/session/access/${tenantId}`,method: 'POST'}, //method: 'POST',
+        { headers: {Authorization: `Bearer ${refreshToken}`}, method: 'POST', body: body.toString(),}
+      );
+      const payload = await readJsonOrThrow(response);
+      if (!isTokenResponse(payload)) {
+        throw new Error(`Unexpected token response: ${formatResult(payload)}`);
+      }
+      setAccessToken(payload.access_token);
+      setAccessTokenMeta({ token_type: payload.token_type, token_expiry: payload.token_expiry });
+      setAccessTokenResult(payload);
+    });
+    
+  }
 
   const confirmRememberPassword = (enabled: boolean) => {
     if (!enabled) {
@@ -395,18 +376,22 @@ const Home = () => {
 
   const canLogin = username.trim().length > 0 && password.length > 0 && loading !== 'token';
   const canFetchTenants = refreshToken.length > 0 && loading !== 'tenants';
+  const canFetchAccessToken = refreshToken.length > 0 && tenantId !== null ;
   const tenants = isTenantsResponse(tenantsResult) ? tenantsResult.tenants : [];
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <StatusBar style="dark" />
 
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Home API</Text>
         <Text style={styles.title}>Session test console</Text>
         <Text style={styles.subtitle}>{BASE_URL}</Text>
+        <Text style={styles.subtitle}>Tenant: {tenantId !== null ? tenantId : 'N/A' }</Text>
       </View>
 
+      {/* Test Connection Block */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Connection</Text>
@@ -416,6 +401,7 @@ const Home = () => {
         <ResultPanel title="Root response" result={rootResult} />
       </View>
 
+      {/* Fetch Refresh Token Block */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Credentials</Text>
@@ -470,22 +456,26 @@ const Home = () => {
         <ResultPanel redactedToken title="Token response" result={tokenResult} />
       </View>
 
+
+      {/* Fetch tenants block */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Tenants</Text>
           <RequestBadge active={loading === 'tenants'} />
         </View>
+
         <ActionButton disabled={!canFetchTenants} label="Fetch Tenants" onPress={fetchTenants} />
 
         {tenants.length > 0 ? (
           <View style={styles.tenantList}>
             {tenants.map((tenant) => (
               <View key={String(tenant.id)} style={styles.tenantItem}>
-                <Text style={styles.tenantName}>{tenant.name}</Text>
-                <Text style={styles.tenantDescription}>ID: {tenant.id}</Text>
+                <Text style={styles.tenantName}>Tenant Name: {tenant.name}</Text>
+                <Text style={styles.tenantDescription}>Tenant ID: {tenant.id}</Text>
                 {tenant.description ? (
-                  <Text style={styles.tenantDescription}>{tenant.description}</Text>
+                  <Text style={styles.tenantDescription}> Tenant Description: {tenant.description}</Text>
                 ) : null}
+                <ActionButton label="Select" onPress={() => setTenantId(tenant.id as string)} />
               </View>
             ))}
           </View>
@@ -494,6 +484,25 @@ const Home = () => {
         <ResultPanel title="Tenants response" result={tenantsResult} />
       </View>
 
+
+        {/* Fetch access token block  */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Access Token</Text>
+            <RequestBadge active={loading === 'token'} />
+          </View>
+
+          <ActionButton disabled={!canFetchAccessToken} label="Fetch Access Token" onPress={fetchAccessToken} />
+          <ResultPanel redactedToken title="Token response" result={accessTokenResult} />
+          {/* {accessToken ? (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaText}>Type: {accessTokenMeta.token_type}</Text>
+              <Text style={styles.metaText}>Expires in: {accessTokenMeta.token_expiry}s</Text>
+            </View>
+          ) : null}
+          <ResultPanel redactedToken title="Access Token response" result={accessTokenResult} />
+          )} */}
+        </View>
       {error ? (
         <View style={styles.errorPanel}>
           <Text style={styles.errorTitle}>Request error</Text>
